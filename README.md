@@ -2,6 +2,8 @@
 
 This microservice listens to a Kafka topic for messages containing paths to video files stored in Amazon S3. For each video it downloads the file, runs a pre-trained YOLOv8 model to detect and track objects, draws bounding boxes with class labels and tracking IDs, then uploads the annotated video back to S3 and publishes the output key to another Kafka topic.
 
+Object IDs are assigned using the default [ByteTrack](https://github.com/ifzhang/ByteTrack) tracker built into Ultralytics YOLO. Frames are processed headlessly (`show=True` is not used), making the service suitable for server environments. The annotated video and Kafka notification are produced only when at least one object is detected in the input.
+
 ## Requirements
 
 - Python 3.8+

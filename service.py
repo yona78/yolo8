@@ -29,6 +29,16 @@ def process_video(s3_key: str) -> None:
         fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
         cap.release()
 
+        writer = cv2.VideoWriter(
+            output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height)
+        )
+
+        detections_found = False
+        # model.track uses ByteTrack by default to assign persistent IDs
+        # show=True is omitted so the service runs headlessly
+        for result in model.track(source=input_path, stream=True):
+            if len(result.boxes) > 0:
+                detections_found = True
         writer = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
 
         for result in model.track(source=input_path, stream=True, tracker='bytetrack.yaml'):
@@ -36,10 +46,13 @@ def process_video(s3_key: str) -> None:
             writer.write(frame)
         writer.release()
 
-        output_key = f"processed/{os.path.basename(output_path)}"
-        s3.upload_file(output_path, S3_BUCKET, output_key)
-        producer.send(OUTPUT_TOPIC, output_key.encode('utf-8'))
-        producer.flush()
+        if detections_found:
+            output_key = f"processed/{os.path.basename(output_path)}"
+            s3.upload_file(output_path, S3_BUCKET, output_key)
+            producer.send(OUTPUT_TOPIC, output_key.encode("utf-8"))
+            producer.flush()
+        else:
+            print("No objects detected; skipping upload and Kafka message")
 
 
 def main() -> None:
