@@ -39,6 +39,9 @@ def process_video(s3_key: str) -> None:
         for result in model.track(source=input_path, stream=True):
             if len(result.boxes) > 0:
                 detections_found = True
+        writer = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
+
+        for result in model.track(source=input_path, stream=True, tracker='bytetrack.yaml'):
             frame = result.plot()
             writer.write(frame)
         writer.release()
